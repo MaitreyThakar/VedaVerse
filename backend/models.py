@@ -15,9 +15,10 @@ class Language(str, Enum):
 
 
 class AskRequest(BaseModel):
-    query: str = Field(..., min_length=1, max_length=1000, description="User's question")
+    query: str = Field("", max_length=1000, description="User's question")
     language: Language = Field(default=Language.english, description="Response language")
     session_id: Optional[str] = Field(default=None, description="Chat session ID")
+    image_data: Optional[str] = Field(default=None, description="Base64 encoded image data")
 
 
 class Source(BaseModel):
@@ -88,3 +89,13 @@ class HeritageResponse(BaseModel):
     success: bool
     message: str
     submission_id: str
+
+
+class OCRRequest(BaseModel):
+    image_data: str
+
+
+class OCRResponse(BaseModel):
+    text: str
+    success: bool
+    message: Optional[str] = None

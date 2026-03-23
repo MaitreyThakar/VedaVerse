@@ -1,47 +1,47 @@
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../LanguageContext';
+import { translations } from '../translations';
 import { Sparkles, Network, BookOpen, Users, ArrowRight, Zap, Globe, Shield } from 'lucide-react';
 import './Home.css';
 
-const STATS = [
-  { value: '10,000+', label: 'Ancient Texts' },
-  { value: '8', label: 'Indian Languages' },
-  { value: '500+', label: 'Knowledge Concepts' },
-  { value: '6', label: 'IKS Domains' },
-];
-
-const FEATURES = [
-  {
-    icon: <Sparkles size={24} />, title: 'AI-Powered Q&A',
-    desc: 'Ask questions in any Indian language and receive contextual answers drawn from authentic ancient texts using RAG technology.',
-    to: '/ask', color: 'gold',
-  },
-  {
-    icon: <Network size={24} />, title: 'Knowledge Graph',
-    desc: 'Visually explore connections between concepts across Ayurveda, Yoga, Sanskrit, Philosophy, Arts and Mathematics.',
-    to: '/graph', color: 'violet',
-  },
-  {
-    icon: <BookOpen size={24} />, title: 'Text Library',
-    desc: 'Browse and search a curated corpus of ancient Indian texts — from Charaka Samhita to Aryabhatiya.',
-    to: '/texts', color: 'teal',
-  },
-  {
-    icon: <Users size={24} />, title: 'Heritage Portal',
-    desc: "Contribute regional and folk knowledge. Help preserve India's living traditions for future generations.",
-    to: '/heritage', color: 'red',
-  },
-];
-
-const DOMAINS = [
-  { emoji: '🌿', name: 'Ayurveda', desc: 'Ancient medicine & healing' },
-  { emoji: '🧘', name: 'Yoga', desc: 'Mind, body & spirit' },
-  { emoji: '📜', name: 'Sanskrit', desc: "World's most precise language" },
-  { emoji: '🔬', name: 'Philosophy', desc: 'Darshanas & metaphysics' },
-  { emoji: '🎵', name: 'Arts & Music', desc: 'Classical performing arts' },
-  { emoji: '🔢', name: 'Mathematics', desc: 'Aryabhata to zero' },
-];
-
 export default function Home() {
+  const { language } = useLanguage();
+  const t = translations[language] || translations.en;
+
+  const STATS = [
+    { value: '10,000+', label: t.statTexts },
+    { value: '8', label: t.statLangs },
+    { value: '500+', label: t.statConcepts },
+    { value: '6', label: t.statDomains },
+  ];
+
+  const FEATURES = [
+    {
+      icon: <Sparkles size={24} />, title: t.f1Title,
+      desc: t.f1Desc,
+      to: '/ask', color: 'gold',
+    },
+    {
+      icon: <BookOpen size={24} />, title: t.f3Title,
+      desc: t.f3Desc,
+      to: '/texts', color: 'teal',
+    },
+    {
+      icon: <Users size={24} />, title: t.f4Title,
+      desc: t.f4Desc,
+      to: '/heritage', color: 'red',
+    },
+  ];
+
+  const DOMAINS = [
+    { emoji: '🌿', name: t.ayurveda, desc: t.ayurvedaDesc },
+    { emoji: '🧘', name: t.yoga, desc: t.yogaDesc },
+    { emoji: '📜', name: t.sanskrit, desc: t.sanskritDesc },
+    { emoji: '🔬', name: t.philosophy, desc: t.philosophyDesc },
+    { emoji: '🎵', name: t.arts, desc: t.artsDesc },
+    { emoji: '🔢', name: t.math, desc: t.mathDesc },
+  ];
+
   return (
     <div className="home">
       {/* Hero */}
@@ -49,22 +49,18 @@ export default function Home() {
         <div className="hero-glow" />
         <div className="container hero-content">
           <div className="hero-badge">
-            <span className="badge badge-gold"><Zap size={10} /> Powered by Gemini AI</span>
+            <span className="badge badge-gold"><Zap size={10} /> {t.heroPowered}</span>
           </div>
           <h1 className="hero-title">
-            Ancient Wisdom,<br />
-            <span className="gradient-text">Conversational Intelligence</span>
+            {t.heroTitle}<br />
+            <span className="gradient-text">{t.heroTitleHighlight}</span>
           </h1>
           <p className="hero-desc">
-            VedaVerse digitizes and makes India's classical knowledge — spanning Ayurveda, Yoga,
-            Sanskrit, Philosophy and the Arts — searchable and conversational in your language.
+            {t.heroDesc}
           </p>
           <div className="hero-actions">
             <Link to="/ask" className="btn btn-primary">
-              <Sparkles size={16} /> Ask VedaVerse <ArrowRight size={14} />
-            </Link>
-            <Link to="/graph" className="btn btn-outline">
-              <Network size={16} /> Explore Knowledge Graph
+              <Sparkles size={16} /> {t.heroBtn1} <ArrowRight size={14} />
             </Link>
           </div>
           <div className="hero-langs">
@@ -90,9 +86,9 @@ export default function Home() {
       {/* Domains */}
       <section className="domains-section container">
         <div className="section-header">
-          <span className="badge badge-gold"><Globe size={10} /> Knowledge Domains</span>
-          <h2>Six Pillars of Indian Wisdom</h2>
-          <p>Explore knowledge across India's rich intellectual traditions</p>
+          <span className="badge badge-gold"><Globe size={10} /> {t.domainBadge}</span>
+          <h2>{t.domainTitle}</h2>
+          <p>{t.domainDesc}</p>
         </div>
         <div className="domains-grid">
           {DOMAINS.map(d => (
@@ -108,9 +104,9 @@ export default function Home() {
       {/* Features */}
       <section className="features-section container">
         <div className="section-header">
-          <span className="badge badge-violet"><Shield size={10} /> Platform Features</span>
-          <h2>Everything You Need</h2>
-          <p>A complete platform for exploring and contributing to India's knowledge heritage</p>
+          <span className="badge badge-violet"><Shield size={10} /> {t.featureBadge}</span>
+          <h2>{t.featureTitle}</h2>
+          <p>{t.featureDesc}</p>
         </div>
         <div className="features-grid">
           {FEATURES.map(f => (
@@ -127,10 +123,10 @@ export default function Home() {
       {/* CTA */}
       <section className="cta-section container">
         <div className="cta-card card card-glow">
-          <h2>Ready to explore India's living heritage?</h2>
-          <p>Ask your first question in any Indian language and discover the depth of ancient wisdom.</p>
+          <h2>{t.ctaTitle}</h2>
+          <p>{t.ctaDesc}</p>
           <Link to="/ask" className="btn btn-primary">
-            Start Exploring <ArrowRight size={14} />
+            {t.ctaBtn} <ArrowRight size={14} />
           </Link>
         </div>
       </section>

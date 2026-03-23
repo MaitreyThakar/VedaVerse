@@ -35,7 +35,7 @@ class TranslationService:
         self.api_key = os.getenv("GEMINI_API_KEY")
         if self._client is None and self.api_key and GENAI_AVAILABLE:
             genai.configure(api_key=self.api_key)
-            self._client = genai.GenerativeModel("gemini-2.0-flash")
+            self._client = genai.GenerativeModel("gemini-1.5-flash")
         return self._client
 
     def translate_to_english(self, text: str, source_language: str) -> str:

@@ -8,8 +8,11 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-export const askQuestion = (query, language = 'en', sessionId = null) =>
-  api.post('/api/ask', { query, language, session_id: sessionId }).then(r => r.data);
+export const askQuestion = (query, language = 'en', sessionId = null, imageData = null) =>
+  api.post('/api/ask', { query, language, session_id: sessionId, image_data: imageData }).then(r => r.data);
+
+export const performOCR = (imageData) =>
+  api.post('/api/ocr', { image_data: imageData }).then(r => r.data);
 
 export const getGraph = () =>
   api.get('/api/graph').then(r => r.data);

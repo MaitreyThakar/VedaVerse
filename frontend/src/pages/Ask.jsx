@@ -1,19 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
-import { askQuestion } from '../api';
-import { Send, Bot, User, BookOpen, Globe, Loader2, AlertCircle } from 'lucide-react';
+import { askQuestion, performOCR } from '../api';
+import { Send, Bot, User, BookOpen, Globe, Loader2, AlertCircle, Image as ImageIcon, X, Wand2 } from 'lucide-react';
 import './Ask.css';
+import { translations } from '../translations';
 
-const SUGGESTED = [
-  "What are the three doshas in Ayurveda?",
-  "Explain the eight limbs of yoga (Ashtanga)",
-  "Who was Kautilya and what is the Arthashastra?",
-  "What is Panini's contribution to Sanskrit grammar?",
-  "Tell me about the Navarasa theory in Indian arts",
-  "What is the Pancha Mahabhuta concept?",
-];
-
-function MessageBubble({ msg }) {
+function MessageBubble({ msg, t }) {
   const isUser = msg.role === 'user';
   return (
     <div className={`message ${isUser ? 'message-user' : 'message-bot'}`}>
@@ -21,22 +13,25 @@ function MessageBubble({ msg }) {
         {isUser ? <User size={16} /> : <Bot size={16} />}
       </div>
       <div className="msg-content">
+        {msg.image && <img src={msg.image} alt="User upload" className="msg-image" />}
         <div className="msg-text">{msg.content}</div>
         {msg.sources && msg.sources.length > 0 && (
           <div className="msg-sources">
-            <div className="sources-label"><BookOpen size={11} /> Sources</div>
-            {msg.sources.map((s, i) => (
-              <div key={i} className="source-chip">
-                <span className="badge badge-gold">{s.category}</span>
-                <strong>{s.title}</strong>
-                {s.page && <span className="source-page">p.{s.page}</span>}
-              </div>
-            ))}
+            <div className="sources-label"><BookOpen size={11} /> {t.askSources || 'Sources'}</div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {msg.sources.map((s, i) => (
+                <div key={i} className="source-chip">
+                  <span className="badge badge-gold">{s.category || 'Text'}</span>
+                  <strong>{s.title || s}</strong>
+                  {s.page && <span className="source-page">p.{s.page}</span>}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         {msg.translated && (
           <div className="translated-note">
-            <Globe size={10} /> Auto-translated
+            <Globe size={10} /> {t.askAutoTranslated || 'Auto-translated'}
           </div>
         )}
       </div>
@@ -46,32 +41,93 @@ function MessageBubble({ msg }) {
 
 export default function Ask() {
   const { language, setLanguage } = useLanguage();
+  const t = translations[language] || translations.en;
+  
   const [messages, setMessages] = useState([
     {
       role: 'bot',
-      content: "Namaste! 🙏 I am VedaVerse — your guide to India's ancient knowledge systems. Ask me anything about Ayurveda, Yoga, Sanskrit, Philosophy, or the Arts. You can ask in any Indian language!",
+      content: t.askIntro || "Namaste! 🙏 I am VedaVerse — your guide to India's ancient knowledge systems. Ask me anything about Ayurveda, Yoga, Sanskrit, Philosophy, or the Arts. You can ask in any Indian language!",
     }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrSuccess, setOcrSuccess] = useState(false);
   const bottomRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image too large. Please select a file smaller than 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        setSelectedImage(base64);
+        setOcrSuccess(false);
+        
+        // --- NEW: LOCAL OCR TRIGGER ---
+        setOcrLoading(true);
+        try {
+          const res = await performOCR(base64);
+          if (res.success && res.text) {
+             setInput(prev => prev ? prev + '\n' + res.text : res.text);
+             setOcrSuccess(true);
+          } else if (res.message && res.message.includes('Tesseract-OCR not installed')) {
+            setError('Local OCR requires Tesseract-OCR installed on the computer. Using image for AI query instead.');
+          }
+        } catch (err) {
+          console.error("OCR failed", err);
+        } finally {
+          setOcrLoading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setOcrLoading(false);
+    setOcrSuccess(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Update intro if language changes and no chat history yet
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].role === 'bot') {
+       setMessages([{
+         role: 'bot',
+         content: t.askIntro
+       }]);
+    }
+  }, [language]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSend = async (query = input) => {
-    if (!query.trim() || loading) return;
+    if ((!query.trim() && !selectedImage) || loading) return;
     setError(null);
-    const userMsg = { role: 'user', content: query };
+    const userMsg = { role: 'user', content: query, image: selectedImage };
     setMessages(prev => [...prev, userMsg]);
+    
+    const currentImage = selectedImage;
     setInput('');
+    setSelectedImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    
     setLoading(true);
 
     try {
-      const res = await askQuestion(query, language, sessionId);
+      const res = await askQuestion(query, language, sessionId, currentImage);
       if (!sessionId) setSessionId(res.session_id);
       setMessages(prev => [...prev, {
         role: 'bot',
@@ -83,7 +139,7 @@ export default function Ask() {
       setError('Could not reach the backend. Make sure the API server is running on port 8000.');
       setMessages(prev => [...prev, {
         role: 'bot',
-        content: '⚠️ I could not connect to the backend. Please ensure the FastAPI server is running.',
+        content: t.askError || '⚠️ I could not connect to the backend. Please ensure the FastAPI server is running.',
       }]);
     } finally {
       setLoading(false);
@@ -95,6 +151,7 @@ export default function Ask() {
   };
 
   const currentLang = LANGUAGES.find(l => l.code === language);
+  const suggestions = t.suggestions || [];
 
   return (
     <div className="ask-page page-wrapper">
@@ -102,7 +159,7 @@ export default function Ask() {
         {/* Sidebar */}
         <aside className="ask-sidebar">
           <div className="card">
-            <h3>🌐 Response Language</h3>
+            <h3>🌐 {t.askSidebarResponse || 'Response Language'}</h3>
             <select
               className="input"
               value={language}
@@ -115,9 +172,9 @@ export default function Ask() {
           </div>
 
           <div className="card">
-            <h3>💡 Try asking...</h3>
+            <h3>💡 {t.askSidebarSuggestions || 'Try asking...'}</h3>
             <div className="suggestions">
-              {SUGGESTED.map(s => (
+              {suggestions.map(s => (
                 <button key={s} className="suggestion-btn" onClick={() => handleSend(s)}>
                   {s}
                 </button>
@@ -126,8 +183,8 @@ export default function Ask() {
           </div>
 
           <div className="card sidebar-info">
-            <div className="badge badge-teal">ℹ️ About RAG</div>
-            <p>VedaVerse uses Retrieval-Augmented Generation to find relevant passages in ancient texts before generating your answer.</p>
+            <div className="badge badge-teal">ℹ️ {t.askSidebarAboutRag || 'About RAG'}</div>
+            <p>{t.askSidebarRagDesc || 'VedaVerse uses Retrieval-Augmented Generation to find relevant passages in ancient texts before generating your answer.'}</p>
           </div>
         </aside>
 
@@ -136,7 +193,7 @@ export default function Ask() {
           <div className="chat-header">
             <Bot size={20} />
             <span>VedaVerse AI</span>
-            <span className="badge badge-gold">Powered by Gemini</span>
+            <span className="badge badge-gold">{t.geminiPowered || 'Powered by Gemini'}</span>
             <span className="chat-lang-indicator">
               <Globe size={12} /> {currentLang?.native}
             </span>
@@ -149,7 +206,7 @@ export default function Ask() {
           )}
 
           <div className="chat-messages">
-            {messages.map((msg, i) => <MessageBubble key={i} msg={msg} />)}
+            {messages.map((msg, i) => <MessageBubble key={i} msg={msg} t={t} />)}
             {loading && (
               <div className="message message-bot">
                 <div className="msg-avatar"><Bot size={16} /></div>
@@ -163,23 +220,57 @@ export default function Ask() {
             <div ref={bottomRef} />
           </div>
 
-          <div className="chat-input-area">
-            <textarea
-              className="input chat-textarea"
-              rows={3}
-              placeholder="Ask about Ayurveda, Yoga, Sanskrit, Philosophy..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKey}
-            />
-            <button
-              className="btn btn-primary send-btn"
-              onClick={() => handleSend()}
-              disabled={!input.trim() || loading}
-            >
-              {loading ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
-              {loading ? 'Thinking...' : 'Ask'}
-            </button>
+          <div className="chat-input-container">
+            {selectedImage && (
+              <div className="image-preview-bar">
+                <div className="image-preview-item">
+                  <img src={selectedImage} alt="Preview" />
+                  <button className="remove-img-btn" onClick={removeImage}><X size={12} /></button>
+                </div>
+                {ocrLoading ? (
+                  <div className="ocr-status scanning">
+                    <Loader2 size={12} className="spin" />
+                    <span>Scanning image for text...</span>
+                  </div>
+                ) : ocrSuccess ? (
+                  <div className="ocr-status success">
+                    <Wand2 size={12} />
+                    <span>Text extracted locally!</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+            <div className="chat-input-area">
+              <div className="image-upload-wrapper">
+                <input
+                  type="file"
+                  id="image-upload"
+                  accept="image/*"
+                  hidden
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                />
+                <label htmlFor="image-upload" className="image-upload-label" title="Upload image for OCR">
+                  <ImageIcon size={20} />
+                </label>
+              </div>
+              <textarea
+                className="input chat-textarea"
+                rows={1}
+                placeholder={t.askPlaceholder || "Ask about Ayurveda, Yoga, Sanskrit, Philosophy..."}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKey}
+              />
+              <button
+                className="btn btn-primary send-btn"
+                onClick={() => handleSend()}
+                disabled={(!input.trim() && !selectedImage) || loading}
+              >
+                {loading ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
+                {loading ? (t.askThinking || 'Thinking...') : (t.askBtn || 'Ask')}
+              </button>
+            </div>
           </div>
         </div>
       </div>

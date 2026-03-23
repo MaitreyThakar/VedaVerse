@@ -1,21 +1,22 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
+import { translations } from '../translations';
 import { BookOpen, Globe, ChevronDown } from 'lucide-react';
 import './Header.css';
 
 export default function Header() {
   const { language, setLanguage } = useLanguage();
+  const t = translations[language] || translations.en;
   const [langOpen, setLangOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const currentLang = LANGUAGES.find(l => l.code === language);
 
   const navLinks = [
-    { to: '/ask',      label: 'Ask VedaVerse' },
-    { to: '/graph',    label: 'Knowledge Graph' },
-    { to: '/texts',    label: 'Browse Texts' },
-    { to: '/heritage', label: 'Heritage Portal' },
-    { to: '/about',    label: 'About' },
+    { to: '/ask',      label: t.ask },
+    { to: '/texts',    label: t.texts },
+    { to: '/heritage', label: t.heritage },
+    { to: '/about',    label: t.about },
   ];
 
   return (
