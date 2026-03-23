@@ -118,31 +118,101 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+/* --- OCR Status --- */
 .ocr-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
+  gap: 0.4rem;
 }
 
 .ocr-status.scanning {
-  color: var(--primary);
-  background: rgba(245,166,35,0.05);
-  animation: pulse 1.5s infinite;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  animation: pulse 2s infinite;
 }
 
 .ocr-status.success {
-  color: var(--primary);
-  background: rgba(245,166,35,0.08);
-  font-weight: 500;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--primary-color);
 }
 
 @keyframes pulse {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
+}
+
+/* --- Curated & Glossary --- */
+.curated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.curated-msg .msg-content {
+  border-left: 3px solid #10b981;
+}
+
+.msg-glossary {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glossary-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.glossary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.glossary-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glossary-item .term {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.glossary-item .translit {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+}
+
+.glossary-item .gu-meaning {
+  margin-left: 0.4rem;
+  color: white;
 }
 
 .chat-input-area {

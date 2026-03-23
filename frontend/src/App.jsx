@@ -4,6 +4,7 @@ import { LanguageProvider } from './LanguageContext';
 import Header from './components/Header';
 import Home from './pages/Home';
 import Ask from './pages/Ask';
+import Admin from './pages/Admin';
 import Texts from './pages/Texts';
 import Heritage from './pages/Heritage';
 import About from './pages/About';
@@ -32,6 +33,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/ask" element={<Ask />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="/texts" element={<Texts />} />
             <Route path="/heritage" element={<Heritage />} />
             <Route path="/about" element={<About />} />

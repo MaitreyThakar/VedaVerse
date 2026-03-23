@@ -14,10 +14,11 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
-logger.info(f"Loaded GEMINI_API_KEY: {os.getenv('GEMINI_API_KEY', 'NOT SET')[:8]}...")
 
 # Import RAG pipeline singleton
 from rag_pipeline import rag_pipeline
+from database import init_db
+from curated_data import seed_db
 
 # Import routers
 from routes.ask import router as ask_router
@@ -25,12 +26,22 @@ from routes.ingest import router as ingest_router
 from routes.graph import router as graph_router
 from routes.heritage import router as heritage_router
 from routes.texts import router as texts_router
+from routes.admin import router as admin_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize resources on startup."""
     logger.info("VedaVerse backend starting...")
+    
+    # Initialize DB & Seed
+    try:
+        init_db()
+        seed_db()
+        logger.info("Database initialized and seeded successfully (PostgreSQL)")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+
     rag_pipeline.initialize()
     if rag_pipeline._initialized:
         logger.info("RAG pipeline initialized with Gemini")
@@ -47,7 +58,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — wide open for local development to avoid any browser-specific issues
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,10 +65,6 @@ app.add_middleware(
     allow_headers=["*"],
     allow_methods=["*"],
 )
-# Note: FastAPI/Starlette allows "*" with allow_credentials=True if you omit allow_credentials=True or set it,
-# but actually it will raise error if you use allow_origins=["*"] and allow_credentials=True together.
-# However, many versions of fastapi-cors-middleware allow it but then the browser rejects it.
-# To be super safe, let's use a regex or just a wide list.
 
 # Mount uploads directory for static file access
 uploads_dir = os.path.join(os.path.dirname(__file__), "uploads")
@@ -67,17 +73,39 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 # Register API routes
 app.include_router(ask_router, prefix="/api", tags=["Q&A"])
+
+@app.get("/")
+async def root():
+    return {
+        "message": "🙏 VedaVerse API is Running!",
+        "version": "1.0.0",
+        "health_check": "/health",
+        "docs": "/docs"
+    }
+
 app.include_router(ingest_router, prefix="/api", tags=["Ingestion"])
 app.include_router(graph_router, prefix="/api", tags=["Knowledge Graph"])
 app.include_router(heritage_router, prefix="/api", tags=["Heritage Portal"])
 app.include_router(texts_router, prefix="/api", tags=["Text Library"])
+app.include_router(admin_router, prefix="/api/admin", tags=["Admin"])
 
 
 @app.get("/health")
 async def health():
+    db_status = "error"
+    try:
+        from sqlalchemy import text
+        from database import engine
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_status = "connected"
+    except:
+        db_status = "disconnected"
+
     return {
         "status": "ok",
         "service": "VedaVerse API",
+        "database": db_status,
         "rag_initialized": rag_pipeline._initialized,
         "gemini_key_set": bool(os.getenv("GEMINI_API_KEY")),
     }
@@ -101,5 +129,4 @@ async def get_languages():
 
 if __name__ == "__main__":
     import uvicorn
-    # Important: host '127.0.0.1' is sometimes safer than '0.0.0.0' for localhost CORS
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

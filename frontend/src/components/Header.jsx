@@ -16,6 +16,7 @@ export default function Header() {
     { to: '/ask',      label: t.ask },
     { to: '/texts',    label: t.texts },
     { to: '/heritage', label: t.heritage },
+    { to: '/admin',    label: t.admin || 'Admin' },
     { to: '/about',    label: t.about },
   ];
 

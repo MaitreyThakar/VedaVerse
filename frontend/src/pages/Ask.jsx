@@ -1,20 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLanguage, LANGUAGES } from '../LanguageContext';
 import { askQuestion, performOCR } from '../api';
-import { Send, Bot, User, BookOpen, Globe, Loader2, AlertCircle, Image as ImageIcon, X, Wand2 } from 'lucide-react';
-import './Ask.css';
-import { translations } from '../translations';
+import { Send, Bot, User, BookOpen, Globe, Loader2, AlertCircle, Image as ImageIcon, X, Wand2, ShieldCheck } from 'lucide-react';
 
 function MessageBubble({ msg, t }) {
   const isUser = msg.role === 'user';
   return (
-    <div className={`message ${isUser ? 'message-user' : 'message-bot'}`}>
+    <div className={`message ${isUser ? 'message-user' : 'message-bot'} ${msg.is_curated ? 'curated-msg' : ''}`}>
       <div className="msg-avatar">
         {isUser ? <User size={16} /> : <Bot size={16} />}
       </div>
       <div className="msg-content">
+        {msg.is_curated && (
+          <div className="curated-badge">
+            <ShieldCheck size={11} /> <span>Expert Curated</span>
+          </div>
+        )}
         {msg.image && <img src={msg.image} alt="User upload" className="msg-image" />}
         <div className="msg-text">{msg.content}</div>
+        
+        {msg.glossary && msg.glossary.length > 0 && (
+          <div className="msg-glossary">
+            <div className="glossary-title"><BookOpen size={10} /> Sanskrit Glossary</div>
+            <div className="glossary-grid">
+              {msg.glossary.map((item, idx) => (
+                <div key={idx} className="glossary-item">
+                  <span className="term">{item.term}</span>
+                  <span className="translit">({item.transliteration})</span>
+                  <span className="gu-meaning">→ {item.gujarati}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {msg.sources && msg.sources.length > 0 && (
           <div className="msg-sources">
             <div className="sources-label"><BookOpen size={11} /> {t.askSources || 'Sources'}</div>
@@ -134,6 +153,8 @@ export default function Ask() {
         content: res.answer,
         sources: res.sources,
         translated: res.translated,
+        is_curated: res.is_curated,
+        glossary: res.glossary,
       }]);
     } catch (e) {
       setError('Could not reach the backend. Make sure the API server is running on port 8000.');

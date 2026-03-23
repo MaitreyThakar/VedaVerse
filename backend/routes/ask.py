@@ -16,13 +16,13 @@ async def ask_vedaverse(request: AskRequest):
 
     # Get answer directly from RAG (the prompt handles the multilingual translation)
     try:
-        answer, sources_raw = rag_pipeline.query(
+        answer, sources_raw, glossary, is_curated = rag_pipeline.query(
             request.query, 
             target_language=language,
             image_data=request.image_data
         )
     except Exception as e:
-        # Fallback to English mock if everything fails
+        # Fallback
         raise HTTPException(status_code=500, detail=f"RAG query failed: {str(e)}")
 
     # Format sources for response
@@ -38,7 +38,9 @@ async def ask_vedaverse(request: AskRequest):
     return AskResponse(
         answer=answer,
         sources=sources,
-        language=language
+        language=language,
+        glossary=glossary,
+        is_curated=is_curated
     )
 
 @router.post("/ocr", response_model=OCRResponse)

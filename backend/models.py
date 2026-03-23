@@ -28,12 +28,21 @@ class Source(BaseModel):
     page: Optional[int] = None
 
 
+class GlossaryEntry(BaseModel):
+    term: str
+    transliteration: str
+    gujarati: str
+    context: str
+
+
 class AskResponse(BaseModel):
     answer: str
     sources: List[Source] = []
     language: str
     translated: bool = False
     session_id: Optional[str] = None
+    glossary: List[GlossaryEntry] = []
+    is_curated: bool = False
 
 
 class IngestResponse(BaseModel):
